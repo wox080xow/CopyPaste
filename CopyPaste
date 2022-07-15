@@ -1,0 +1,75 @@
+WITH
+
+ 
+
+inter AS (
+
+        SELECT a.event_uuid AS event_uuid, a.agent_number AS agent_number, c.customer_id AS cust_id, start_date,
+
+                   target, act_id, act, even_sts_chn
+
+    FROM (
+
+            SELECT event_uuid, agent_number, start_date, target, act_id, act, even_sts_chn
+
+        FROM gbsq_prod.iag_event
+
+         WHERE iag_event.target = '行銷'
+
+        AND start_date >= '2022/03/14'
+
+        AND start_date <= '2022/04/28'
+
+        AND dt <= '20220714') a
+
+    JOIN (
+
+            SELECT DISTINCT event_uuid, customer_uuid
+
+        FROM gbsq_prod.iag_event_customer_maping) b
+
+    ON a.event_uuid = b.event_uuid
+
+    JOIN (
+
+            SELECT DISTINCT customer_uuid, customer_id
+
+        FROM gbsq_prod.iag_customer
+
+        WHERE customer_id <> '') c
+
+    ON c.customer_uuid = b.customer_uuid
+
+),
+
+mk AS (SELECT cust_id, agent_number as agnt_num FROM inter)
+
+ 
+
+SELECT agnt_num, a.cust_id AS cust_id, event_uuid, start_date, target, act, even_sts_chn, inter_start_flag, inter_finish_flag,
+
+       itv_desc, label_type, label_type_nm, type_item, type_item_nm, other_desc
+
+FROM mk a
+
+LEFT JOIN inter b
+
+ON a.cust_id=b.cust_id AND a.agnt_num=b.agent_number
+
+LEFT JOIN ( SELECT DISTINCT agent_number, cust_id, '1' AS inter_start_flag FROM inter ) c
+
+ON a.cust_id=c.cust_id AND a.agnt_num=c.agent_number
+
+LEFT JOIN ( SELECT DISTINCT agent_number, cust_id, '1' AS inter_finish_flag FROM inter WHERE even_sts_chn = '已訪談' ) d
+
+ON a.cust_id=d.cust_id AND a.agnt_num=d.agent_number
+
+LEFT JOIN ( SELECT evnt_interview_rec_uuid, o_event_uuid, itv_desc FROM gbsq_prod.iag_evnt_interview_rec ) e
+
+ON substr(b.event_uuid,0,32) = e.o_event_uuid
+
+LEFT JOIN ( SELECT evnt_interview_rec_uuid, label_type, label_type_nm, type_item, type_item_nm, other_desc FROM gbsq_prod.iag_itv_rec_label ) f
+
+ON e.evnt_interview_rec_uuid = f.evnt_interview_rec_uuid
+
+ORDER BY agnt_num, cust_id, event_uuid, b.start_date, b.act_id
