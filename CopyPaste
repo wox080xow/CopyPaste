@@ -1,3 +1,23 @@
+-- 20220721
+INSERT OVERWRITE TABLE gbsq_base.cust_prod_raw_lcaatag PARTITION(dt) 
+
+select clmnum, secuityno, submitdte, acdtdte, consultdte, hsdte, claimtype, examstatus,
+
+        procecode, procedate, apprdate, clamamt, payamt, dt
+
+from gbsq_prod.teuc_lcaa
+
+where dt='20220706' and secuityno<>""
+
+ 
+
+drop TABLE gbsq_base.cust_prod_raw_lcaatag
+
+ 
+
+create EXTERNAL table gbsq_base.cust_prod_raw_lcaatag (clmnum string, secuityno string, submitdte string, acdtdte string, consultdte string, hsdte string, claimtype string, examstatus string, procecode string, procedate string, apprdate string, clamamt double, payamt double) partitioned by (dt string) STORED AS PARQUET
+
+-- 20220719
 WITH
 
  
